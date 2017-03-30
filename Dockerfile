@@ -1,25 +1,24 @@
-#Grab the latest alpine image
+# Setup as with alpinehelloworld…
 FROM alpine:latest
 
-# Install python and pip
 RUN apk add --update python py-pip bash 
 ADD ./webapp/requirements.txt /tmp/requirements.txt
 
-# Install dependencies
 RUN pip install -qr /tmp/requirements.txt
 
-# Add our code
 ADD ./webapp /opt/webapp/
 WORKDIR /opt/webapp
 
-# Expose is NOT supported by Heroku
-# EXPOSE 5000 		
-
-# Run the image as a non-root user
 RUN adduser -D myuser
 USER myuser
 
-# Run the app.  CMD is required to run on Heroku
-# $PORT is set by Heroku			
-CMD gunicorn --bind 0.0.0.0:$PORT wsgi 
-
+# … but use ENTRYPOINT to demonstrate an issue starting containers.
+#
+# If the entrypoint has multiple segments, the dyno fails to boot ("no such file
+# or directory", even though the script exists). If you move "wsgi" out of
+# ENTRYPOINT and into CMD, the dyno boots.
+#
+# In Docker, the two configurations should be equivalent, as long as there are
+# no CLI arguments to docker run to override the CMD.
+ENTRYPOINT ["/opt/webapp/bin/web", "wsgi"]
+CMD []
